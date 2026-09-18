@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { createAgentMemory } from "../config/memory.js";
 import { getAgentInstructions } from "../config/agent-instructions.js";
+import { createCalendarTools } from "./agent-tools.service.js";
 
 export type AgentEvent = {
   type: "started" | "progress" | "token" | "completed" | "error";
@@ -9,6 +10,7 @@ export type AgentEvent = {
 };
 
 export type StreamAgentReplyInput = {
+  userId: string;
   authUserId: string;
   threadId: string;
   message: string;
@@ -136,6 +138,7 @@ export async function streamAgentReply(input: StreamAgentReplyInput) {
     name: "Meeting Assitant",
     instructions: getAgentInstructions(),
     model: modelName(),
+    tools: createCalendarTools(input.authUserId),
     memory,
   });
 
@@ -147,6 +150,15 @@ export async function streamAgentReply(input: StreamAgentReplyInput) {
   });
 
   for await (const chunk of result.fullStream) {
+    if (chunk.type === "tool-call") {
+      input.onEvent({
+        type: "progress",
+        message: `Running ${chunk.payload.toolName}`,
+      });
+
+      continue;
+    }
+
     if (chunk.type === "text-delta") {
       const text = chunk.payload.text;
 

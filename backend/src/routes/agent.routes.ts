@@ -65,6 +65,7 @@ agentRoutes.post("/chat", async (req, res) => {
 
   try {
     await streamAgentReply({
+      userId: req.auth!.userId,
       authUserId: req.auth!.authUserId,
       threadId: parsed.data.threadId,
       message: parsed.data.message,
