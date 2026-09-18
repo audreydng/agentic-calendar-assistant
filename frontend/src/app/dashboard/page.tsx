@@ -1,5 +1,8 @@
 "use client";
 
+import ChatPanel from "@/components/dashboard/chat-panel";
+import ConnectionsPanel from "@/components/dashboard/connection-panel";
+import { Button } from "@/components/ui/button";
 import { useDescope, useSession, useUser } from "@descope/nextjs-sdk/client";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -43,17 +46,25 @@ function DashboardPage() {
 
   return (
     <div className={styles.shell}>
-      <div className="flex h-svh flex-col items-center justify-center gap-4">
-        <p className={styles.userLabel}>{label}</p>
-        <button
-          className={styles.logoutBtn}
-          onClick={handleLogout}
-          disabled={loggingOut}
-        >
-          <LogOut className={styles.logoutIcon} />
-          {loggingOut ? "Logging out..." : "Log out"}
-        </button>
-      </div>
+      <ChatPanel
+        connections={<ConnectionsPanel sessionToken={sessionToken} />}
+        footer={
+          <>
+            <div className={styles.userLabel}>
+              {isUserLoading ? "Loading..." : label}
+            </div>
+            <Button
+              variant="ghost"
+              className={styles.logoutBtn}
+              disabled={loggingOut}
+              onClick={handleLogout}
+            >
+              <LogOut className={styles.logoutIcon} />
+              {loggingOut ? "Logging out..." : "Log out"}
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }
