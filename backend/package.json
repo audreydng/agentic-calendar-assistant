@@ -12,6 +12,8 @@
   "type": "module",
   "dependencies": {
     "@descope/node-sdk": "^2.17.0",
+    "@mastra/core": "^1.67.0",
+    "@mastra/memory": "^1.30.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -23,6 +25,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^22.20.3",
     "@types/pg": "^8.23.1",
+    "mastra": "^1.30.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
