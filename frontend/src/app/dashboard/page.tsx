@@ -47,6 +47,7 @@ function DashboardPage() {
   return (
     <div className={styles.shell}>
       <ChatPanel
+        sessionToken={sessionToken}
         connections={<ConnectionsPanel sessionToken={sessionToken} />}
         footer={
           <>
