@@ -8,7 +8,12 @@ if (!projectId) {
   throw new Error('Missing DESCOPE_PROJECT_ID environment variable')
 }
 
-export const descope = DescopeClient({
+export const descopeClient = DescopeClient({
     projectId : projectId ?? "",
-    managementKey : process.env.DESCOPE_MANAGEMENT_KEY ?? "",
+    managementKey : managementKey ?? "",
 })
+
+export const CALENDAR_CONNECTION_ID =
+  process.env.DESCOPE_CALENDAR_CONNECTION_ID ?? "google-calendar";
+
+export const CALENDAR_CONNECTION_LABEL = "Google Calendar";

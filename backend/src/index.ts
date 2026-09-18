@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { da } from 'zod/locales';
 import { getPool } from './db/pool.js';
+import connectionRouter from './routes/connection.routes.js';
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -29,6 +30,8 @@ app.get('/health', async (req, res) => {
         });
     }
 });
+
+app.use("/api/connections", connectionRouter);
 
 app.listen(port, () => {
     console.log(`Agentic Calendar is running on port: ${port}`);
