@@ -10,7 +10,7 @@ import {
   connectCalendar,
   fetchCalendarConnection,
   refreshCalendarConnection,
-} from "@/lib/connection";
+} from "@/lib/connections";
 
 const styles = {
   root: "space-y-1.5",
@@ -43,16 +43,14 @@ function ConnectionsPanel({ sessionToken }: { sessionToken: string }) {
   const [connection, setConnection] = useState<ConnectionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleLoadCalendarConnection = useCallback(async () => {
     setLoading(true);
-    setError(null);
 
     try {
       setConnection(await fetchCalendarConnection(sessionToken));
     } catch {
-      setError("Could not load the calendar connection.");
+      console.log("failed to load calendar connection");
     } finally {
       setLoading(false);
     }
@@ -64,25 +62,21 @@ function ConnectionsPanel({ sessionToken }: { sessionToken: string }) {
 
   async function handleCalendarConnect() {
     setBusy(true);
-    setError(null);
-
     try {
       await connectCalendar(sessionToken);
     } catch {
-      setError("Could not start the calendar connection.");
-      setBusy(false);
+      console.log("failed to connect");
     }
   }
 
   async function handleCalendarRefresh() {
     setBusy(true);
-    setError(null);
 
     try {
       await refreshCalendarConnection(sessionToken);
       await handleLoadCalendarConnection();
     } catch {
-      setError("Could not refresh the calendar status.");
+      console.log("failed to refresh");
     } finally {
       setBusy(false);
     }
@@ -94,16 +88,8 @@ function ConnectionsPanel({ sessionToken }: { sessionToken: string }) {
     <div className={styles.root}>
       <p className={styles.title}>Connections</p>
 
-      {loading ? (
+      {loading || !connection ? (
         <Skeleton className={styles.skeleton} />
-      ) : !connection ? (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLoadCalendarConnection}
-        >
-          Retry
-        </Button>
       ) : (
         <div className={styles.row}>
           <div
@@ -141,17 +127,12 @@ function ConnectionsPanel({ sessionToken }: { sessionToken: string }) {
             variant={"ghost"}
             className={styles.refreshBtn}
             disabled={busy}
-            onClick={handleCalendarRefresh}
-            aria-label="Refresh calendar connection status"
+            onClick={() => handleCalendarRefresh()}
           >
-            <RefreshCcw
-              className={cn(styles.refreshIcon, busy && "animate-spin")}
-            />
+            <RefreshCcw className={styles.refreshIcon} />
           </Button>
         </div>
       )}
-
-      {error ? <p className={styles.error}>{error}</p> : null}
     </div>
   );
 }

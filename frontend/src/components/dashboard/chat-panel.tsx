@@ -26,6 +26,7 @@ import {
 import { ScrollArea } from "../ui/scroll-area";
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
+import { MarkdownMessage } from "./markdown-message";
 
 const styles = {
   root: "flex h-svh overflow-hidden",
@@ -95,7 +96,7 @@ const styles = {
     "rounded-2xl rounded-bl-md bg-card px-4 py-3 text-foreground ring-1 ring-primary/15",
   bubbleSystem: "rounded-2xl bg-muted px-4 py-2.5 text-muted-foreground",
   thinking: "inline-flex items-center gap-2 text-sm text-muted-foreground",
-  messageText: "whitespace-pre-wrap text-[15px] leading-7",
+  userText: "whitespace-pre-wrap text-[15px] leading-7",
   composerWrap:
     "shrink-0 border-t border-border/60 bg-background/70 px-4 py-4 backdrop-blur-md sm:px-6",
   composerForm:
@@ -431,10 +432,19 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
                                 <LoaderCircle className={styles.statusIconSm} />
                                 Thinking...
                               </span>
-                            ) : (
-                              <p className={styles.messageText}>
+                            ) : message.role === "user" ? (
+                              <p className={styles.userText}>
                                 {message.content}
                               </p>
+                            ) : (
+                              <MarkdownMessage
+                                content={message.content}
+                                tone={
+                                  message.role === "system"
+                                    ? "system"
+                                    : "assistant"
+                                }
+                              />
                             )}
                           </div>
                         </div>
