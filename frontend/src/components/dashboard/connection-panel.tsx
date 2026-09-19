@@ -10,7 +10,7 @@ import {
   connectCalendar,
   fetchCalendarConnection,
   refreshCalendarConnection,
-} from "@/lib/connections";
+} from "@/lib/connection";
 
 const styles = {
   root: "space-y-1.5",
