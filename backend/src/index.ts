@@ -4,6 +4,8 @@ import cors from 'cors';
 import { getPool } from './db/pool.js';
 import { connectionRouter } from './routes/connection.routes.js';
 import { agentRoutes } from './routes/agent.routes.js';
+import { mountMcpServer } from "./mcp/mount.js";
+
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -34,6 +36,10 @@ app.get('/health', async (req, res) => {
 app.use("/api/connections", connectionRouter);
 app.use("/api/agent", agentRoutes);
 
+mountMcpServer(app);
+
 app.listen(port, () => {
     console.log(`Agentic Calendar is running on port: ${port}`);
 });
+
+
