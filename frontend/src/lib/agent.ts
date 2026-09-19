@@ -33,6 +33,20 @@ export async function loadThread(token: string, threadId: string) {
   );
 }
 
+export async function deleteThread(token: string, threadId: string) {
+  return apiFetch<{ threadId: string; deleted: boolean }>(
+    `/api/agent/threads/${threadId}`,
+    { token, method: "DELETE" },
+  );
+}
+
+export async function deleteAllThreads(token: string) {
+  return apiFetch<{ deleted: number }>("/api/agent/threads", {
+    token,
+    method: "DELETE",
+  });
+}
+
 export async function streamAgentChat(
   token: string,
   input: { message: string; threadId: string },

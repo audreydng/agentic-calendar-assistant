@@ -30,7 +30,7 @@ export type ThreadMessage = {
 };
 
 function modelName() {
-  return `openai/${process.env.AI_MODEL ?? "gpt-4o-mini"}`;
+  return `google/${process.env.AI_MODEL ?? "gemini-3.6-flash"}`;
 }
 
 function messageText(content: unknown): string {
@@ -121,9 +121,46 @@ export async function getThreadMessages(
   return messages;
 }
 
+export async function deleteUserThread(
+  authUserId: string,
+  threadId: string,
+): Promise<void> {
+  const memory = createAgentMemory();
+
+  const thread = await memory.getThreadById({
+    threadId,
+    resourceId: authUserId,
+  });
+
+  if (!thread || thread.resourceId !== authUserId) {
+    throw new Error("Thread not found");
+  }
+
+  await memory.deleteThread(threadId);
+}
+
+export async function deleteAllUserThreads(authUserId: string): Promise<number> {
+  const memory = createAgentMemory();
+
+  const result = await memory.listThreads({
+    filter: { resourceId: authUserId },
+    perPage: false,
+  });
+
+  const ownThreads = result.threads.filter(
+    (thread) => thread.resourceId === authUserId,
+  );
+
+  for (const thread of ownThreads) {
+    await memory.deleteThread(thread.id);
+  }
+
+  return ownThreads.length;
+}
+
 export async function streamAgentReply(input: StreamAgentReplyInput) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is not set env");
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
   }
 
   input.onEvent({

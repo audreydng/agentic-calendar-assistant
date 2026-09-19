@@ -5,6 +5,7 @@ import {
   LoaderCircle,
   MessageSquarePlus,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import {
   FormEvent,
@@ -18,6 +19,8 @@ import {
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import {
+  deleteAllThreads,
+  deleteThread,
   listThreads,
   loadThread,
   streamAgentChat,
@@ -50,12 +53,20 @@ const styles = {
   newChatIcon: "size-4",
   separator: "opacity-70",
   chatsSection: "flex min-h-0 flex-1 flex-col px-2 pt-3",
-  chatsTitle: "mb-2 px-2 text-sm font-semibold text-sidebar-foreground",
+  chatsHeader: "mb-2 flex items-center justify-between gap-2 px-2",
+  chatsTitle: "text-sm font-semibold text-sidebar-foreground",
+  clearAllBtn:
+    "h-7 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:text-destructive",
+  clearAllIcon: "size-3.5",
   chatsScroll: "min-h-0 flex-1 px-1 pb-3",
   chatsEmpty: "px-2 py-3 text-sm leading-relaxed text-muted-foreground",
   threadList: "space-y-1",
+  threadItem: "group relative",
   threadBtn:
-    "w-full rounded-xl px-3 py-2.5 text-left transition-colors disabled:opacity-50",
+    "w-full rounded-xl py-2.5 pr-10 pl-3 text-left transition-colors disabled:opacity-50",
+  threadDeleteBtn:
+    "absolute top-2 right-2 flex size-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0",
+  threadDeleteIcon: "size-3.5",
   threadBtnActive: "bg-sidebar-accent text-sidebar-accent-foreground",
   threadBtnIdle: "hover:bg-sidebar-accent/60",
   threadTitle: "line-clamp-2 text-sm font-medium leading-snug",
@@ -148,6 +159,7 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
   const [running, setRunning] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const showEmpty =
     messages.length === 1 && messages[0]?.id === "welcome" && !running;
@@ -176,8 +188,44 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
     setPrompt("");
   }
 
+  async function removeThread(targetThreadId: string) {
+    if (running || loadingThread || deleting) return;
+    if (!window.confirm("Delete this chat? This cannot be undone.")) return;
+
+    setDeleting(true);
+    try {
+      await deleteThread(sessionToken, targetThreadId);
+      setThreads((current) =>
+        current.filter((thread) => thread.id !== targetThreadId),
+      );
+      if (targetThreadId === threadId) startNewChat();
+    } catch {
+      window.alert("Could not delete the chat");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function clearAllThreads() {
+    if (running || loadingThread || deleting || threads.length === 0) return;
+    if (!window.confirm("Delete all chats? This cannot be undone.")) return;
+
+    setDeleting(true);
+    try {
+      await deleteAllThreads(sessionToken);
+      setThreads([]);
+      startNewChat();
+    } catch {
+      window.alert("Could not delete chat history");
+      refreshThreads();
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function resumeThread(nextThreadId: string) {
-    if (running || loadingThread || nextThreadId === threadId) return;
+    if (running || loadingThread || deleting || nextThreadId === threadId)
+      return;
     setLoadingThread(true);
     setProgress(null);
 
@@ -322,7 +370,22 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
         </div>
         <Separator className={styles.separator} />
         <div className={styles.chatsSection}>
-          <p className={styles.chatsTitle}>Chats</p>
+          <div className={styles.chatsHeader}>
+            <p className={styles.chatsTitle}>Chats</p>
+            {threads.length > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearAllThreads}
+                disabled={running || loadingThread || deleting}
+                className={styles.clearAllBtn}
+              >
+                <Trash2 className={styles.clearAllIcon} />
+                Clear all
+              </Button>
+            ) : null}
+          </div>
           <ScrollArea className={styles.chatsScroll}>
             {threads.length === 0 ? (
               <p className={styles.chatsEmpty}>
@@ -333,21 +396,35 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
                 {threads.map((thread) => {
                   const active = thread.id === threadId;
                   return (
-                    <button
-                      key={thread.id}
-                      type="button"
-                      disabled={running || loadingThread}
-                      onClick={() => resumeThread(thread.id)}
-                      className={cn(
-                        styles.threadBtn,
-                        active ? styles.threadBtnActive : styles.threadBtnIdle,
-                      )}
-                    >
-                      <span className={styles.threadTitle}>{thread.title}</span>
-                      <span className={styles.threadTime}>
-                        {thread.updatedAt}
-                      </span>
-                    </button>
+                    <div key={thread.id} className={styles.threadItem}>
+                      <button
+                        type="button"
+                        disabled={running || loadingThread || deleting}
+                        onClick={() => resumeThread(thread.id)}
+                        className={cn(
+                          styles.threadBtn,
+                          active
+                            ? styles.threadBtnActive
+                            : styles.threadBtnIdle,
+                        )}
+                      >
+                        <span className={styles.threadTitle}>
+                          {thread.title}
+                        </span>
+                        <span className={styles.threadTime}>
+                          {thread.updatedAt}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={running || loadingThread || deleting}
+                        onClick={() => removeThread(thread.id)}
+                        className={styles.threadDeleteBtn}
+                        aria-label={`Delete chat ${thread.title}`}
+                      >
+                        <Trash2 className={styles.threadDeleteIcon} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
