@@ -8,7 +8,7 @@ import {
   rescheduleMeeting,
 } from "./calendar.service.js";
 
-export function createCalendarTools(authUserId: string) {
+export function createCalendarTools(authUserId: string, timeZone: string) {
   return {
     listUpcomingMeetings: createTool({
       id: "listUpcomingMeetings",
@@ -26,6 +26,7 @@ export function createCalendarTools(authUserId: string) {
           authUserId,
           maxResults,
           todayOnly,
+          timeZone,
         });
       },
     }),
@@ -55,9 +56,11 @@ export function createCalendarTools(authUserId: string) {
         startIso: z.string().describe("Start time as ISO-8601 datetime"),
         endIso: z.string().describe("End time as ISO-8601 datetime"),
         attendeeEmails: z
-          .array(z.string())
+          .array(z.email())
           .optional()
-          .describe("Invite these emails; Google sends calendar invites"),
+          .describe(
+            "Invite these emails exactly as the user wrote them; Google sends calendar invites",
+          ),
         description: z.string().optional(),
         addGoogleMeet: z
           .boolean()
@@ -67,6 +70,7 @@ export function createCalendarTools(authUserId: string) {
       execute: async (input) => {
         return await createMeeting({
           authUserId,
+          timeZone,
           ...input,
         });
       },
@@ -83,7 +87,7 @@ export function createCalendarTools(authUserId: string) {
       }),
 
       execute: async (input) => {
-        return await rescheduleMeeting({ authUserId, ...input });
+        return await rescheduleMeeting({ authUserId, timeZone, ...input });
       },
     }),
 

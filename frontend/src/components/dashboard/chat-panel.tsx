@@ -140,7 +140,7 @@ const SUGGESTIONS = [
   "What's on today?",
   "What's on tomorrow?",
   "Find a free slot tomorrow morning",
-  "Create a meeting on 20th aug and keep the time as 10am for 30 minutes and keep sangammukherjee1996@gmail as attendee",
+  "Create a meeting on 20th aug and keep the time as 10am for 30 minutes and keep biendang0401@gmail.com as attendee",
 ];
 
 function WelcomeMessage(): Message {

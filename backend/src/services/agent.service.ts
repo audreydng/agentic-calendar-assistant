@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 import { createAgentMemory } from "../config/memory.js";
 import { getAgentInstructions } from "../config/agent-instructions.js";
 import { createCalendarTools } from "./agent-tools.service.js";
+import { getCalendarTimeZone } from "./calendar.service.js";
 
 export type AgentEvent = {
   type: "started" | "progress" | "token" | "completed" | "error";
@@ -169,13 +170,14 @@ export async function streamAgentReply(input: StreamAgentReplyInput) {
   });
 
   const memory = createAgentMemory();
+  const timeZone = await getCalendarTimeZone(input.authUserId);
 
   const agent = new Agent({
     id: "metting-assistant",
     name: "Meeting Assitant",
-    instructions: getAgentInstructions(),
+    instructions: getAgentInstructions(timeZone),
     model: modelName(),
-    tools: createCalendarTools(input.authUserId),
+    tools: createCalendarTools(input.authUserId, timeZone),
     memory,
   });
 

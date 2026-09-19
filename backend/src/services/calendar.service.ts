@@ -1,6 +1,9 @@
 import { google } from "googleapis";
 import { randomUUID } from "node:crypto";
 import { getCalendarAccessToken } from "./token.service.js";
+import { dayRangeInZone, isValidTimeZone } from "../utils/timezone.js";
+
+const FALLBACK_TIME_ZONE = process.env.DEFAULT_TIMEZONE ?? "UTC";
 
 function calendarClient(accessToken: string) {
   const auth = new google.auth.OAuth2();
@@ -21,6 +24,17 @@ async function calendarForUser(authUserId: string) {
   return calendarClient(accessToken);
 }
 
+// Google opens htmlLink in the browser's default account (authuser=0), which
+// shows "event not found" when that isn't the calendar owner. Pin the account.
+function withAccount(link: string | null | undefined, email?: string | null) {
+  if (!link) return null;
+  if (!email) return link;
+
+  const url = new URL(link);
+  url.searchParams.set("authuser", email);
+  return url.toString();
+}
+
 function formatEvent(event: {
   id?: string | null;
   summary?: string | null;
@@ -30,6 +44,7 @@ function formatEvent(event: {
   end?: { dateTime?: string | null; date?: string | null } | null;
   htmlLink?: string | null;
   hangoutLink?: string | null;
+  organizer?: { email?: string | null } | null;
   attendees?: Array<{
     email?: string | null;
     displayName?: string | null;
@@ -42,18 +57,42 @@ function formatEvent(event: {
     location: event.location?.trim() || null,
     start: event.start?.dateTime ?? event.start?.date ?? null,
     end: event.end?.dateTime ?? event.end?.date ?? null,
-    htmlLink: event.htmlLink ?? null,
-    meetLink: event.hangoutLink ?? null,
+    htmlLink: withAccount(event.htmlLink, event.organizer?.email),
+    meetLink: withAccount(event.hangoutLink, event.organizer?.email),
     attendees: (event.attendees ?? [])
       .map((person) => person.email || person.displayName)
       .filter((value): value is string => Boolean(value)),
   };
 }
 
+/**
+ * Time zone of the user's primary Google Calendar. events.list returns it
+ * alongside the items, so this works with the scopes we already request.
+ */
+export async function getCalendarTimeZone(authUserId: string) {
+  try {
+    const calendar = await calendarForUser(authUserId);
+    const response = await calendar.events.list({
+      calendarId: "primary",
+      maxResults: 1,
+      timeMin: new Date().toISOString(),
+      fields: "timeZone",
+    });
+
+    const timeZone = response.data.timeZone;
+    if (timeZone && isValidTimeZone(timeZone)) return timeZone;
+  } catch {
+    // Calendar not connected yet or request failed; fall back below.
+  }
+
+  return FALLBACK_TIME_ZONE;
+}
+
 export async function listUpcomingMeetings(input: {
   authUserId: string;
   maxResults?: number;
   todayOnly?: boolean;
+  timeZone?: string;
 }) {
   const calendar = await calendarForUser(input.authUserId);
 
@@ -62,13 +101,10 @@ export async function listUpcomingMeetings(input: {
   let timeMax: string | undefined;
 
   if (input.todayOnly) {
-    const start = new Date();
-
-    // 00:00:00:00
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    // "Today" is the user's calendar day, not the server's.
+    const timeZone =
+      input.timeZone ?? (await getCalendarTimeZone(input.authUserId));
+    const { start, end } = dayRangeInZone(new Date(), timeZone);
 
     timeMin = start.toISOString();
     timeMax = end.toISOString();
@@ -94,6 +130,7 @@ export async function createMeeting(input: {
   attendeeEmails?: string[];
   description?: string;
   addGoogleMeet?: boolean;
+  timeZone?: string;
 }) {
   const calendar = await calendarForUser(input.authUserId);
 
@@ -109,9 +146,11 @@ export async function createMeeting(input: {
       description: input.description,
       start: {
         dateTime: input.startIso,
+        timeZone: input.timeZone,
       },
       end: {
         dateTime: input.endIso,
+        timeZone: input.timeZone,
       },
       attendees: (input.attendeeEmails ?? []).map((email) => ({ email })),
       conferenceData: withMeet
@@ -157,6 +196,7 @@ export async function rescheduleMeeting(input: {
   eventId: string;
   startIso: string;
   endIso: string;
+  timeZone?: string;
 }) {
   const calendar = await calendarForUser(input.authUserId);
 
@@ -167,9 +207,11 @@ export async function rescheduleMeeting(input: {
     requestBody: {
       start: {
         dateTime: input.startIso,
+        timeZone: input.timeZone,
       },
       end: {
         dateTime: input.endIso,
+        timeZone: input.timeZone,
       },
     },
   });
