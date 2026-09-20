@@ -92,6 +92,10 @@ const styles = {
   emptyCopy: "mt-3 max-w-md text-base leading-relaxed text-muted-foreground",
   suggestions: "mt-8 flex flex-wrap justify-center gap-2",
   suggestionBtn: "rounded-full border-border/80 bg-card/80 px-3.5 text-[13px]",
+  quickCommands:
+    "mx-auto mb-2.5 flex w-full max-w-3xl gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin]",
+  quickCommandBtn:
+    "h-7 shrink-0 rounded-full border-border/80 bg-card/80 px-3 text-xs",
   messageList: "space-y-6",
   statusRow: "flex items-center gap-2 text-sm text-muted-foreground",
   statusIcon: "size-4 animate-spin",
@@ -136,11 +140,52 @@ type Message = {
 const WELCOME =
   "Connect Google Calendar, then ask about today's agenda, create a Meet, or reschedule something.";
 
+// Ordered as a demo walkthrough: preferences → create → check → change → cancel.
+// Dates are relative so the prompts never point at a day that has passed.
 const SUGGESTIONS = [
-  "What's on today?",
-  "What's on tomorrow?",
-  "Find a free slot tomorrow morning",
-  "Create a meeting on 20th aug and keep the time as 10am for 30 minutes and keep biendang0401@gmail.com as attendee",
+  {
+    label: "Save my preferences",
+    prompt:
+      "Remember my preferences: default meeting length is 45 minutes and I prefer meetings between 9am and 5pm.",
+  },
+  {
+    label: "Schedule a meeting",
+    prompt:
+      'Create a 30-minute meeting called "Project sync" next Monday at 10am with biendang0401@gmail.com and add a Google Meet link.',
+  },
+  {
+    label: "Today's agenda",
+    prompt: "What's on my calendar today?",
+  },
+  {
+    label: "Upcoming meetings",
+    prompt: "Show my next 5 upcoming meetings.",
+  },
+  {
+    label: "Check availability",
+    prompt: "Am I free tomorrow between 2pm and 4pm?",
+  },
+  {
+    label: "Find a free slot",
+    prompt: "Find a free 30-minute slot for me tomorrow morning.",
+  },
+  {
+    label: "Reschedule",
+    prompt: 'Move my "Project sync" meeting to next Tuesday at 3pm.',
+  },
+  {
+    label: "Meeting details",
+    prompt: 'Tell me more about my "Project sync" meeting.',
+  },
+  {
+    label: "Cancel a meeting",
+    prompt: 'Cancel my "Project sync" meeting.',
+  },
+  {
+    label: "Brief my day",
+    prompt:
+      "Give me a short brief of my day: how many meetings, any back-to-back ones, and my free gaps.",
+  },
 ];
 
 function WelcomeMessage(): Message {
@@ -165,6 +210,7 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
     messages.length === 1 && messages[0]?.id === "welcome" && !running;
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
   const refreshThreads = useCallback(async () => {
     try {
@@ -331,6 +377,12 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
     }
   }
 
+  // Fill the composer instead of sending, so demo prompts can be tweaked first.
+  function applyCommand(text: string) {
+    setPrompt(text);
+    promptRef.current?.focus();
+  }
+
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     sendMessage(prompt);
@@ -457,17 +509,18 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
                   <h2 className={styles.emptyTitle}>Meeting Assistant</h2>
                   <p className={styles.emptyCopy}>{WELCOME}</p>
                   <div className={styles.suggestions}>
-                    {SUGGESTIONS.map((currentSuggestionItem) => (
+                    {SUGGESTIONS.map((suggestion) => (
                       <Button
-                        key={currentSuggestionItem}
+                        key={suggestion.label}
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => sendMessage(currentSuggestionItem)}
+                        onClick={() => sendMessage(suggestion.prompt)}
                         className={styles.suggestionBtn}
                         disabled={running || loadingThread}
+                        title={suggestion.prompt}
                       >
-                        {currentSuggestionItem}
+                        {suggestion.label}
                       </Button>
                     ))}
                   </div>
@@ -542,8 +595,27 @@ function ChatPanel({ sessionToken, connections, footer }: Props) {
           </ScrollArea>
 
           <div className={styles.composerWrap}>
+            {!showEmpty ? (
+              <div className={styles.quickCommands}>
+                {SUGGESTIONS.map((suggestion) => (
+                  <Button
+                    key={suggestion.label}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyCommand(suggestion.prompt)}
+                    className={styles.quickCommandBtn}
+                    disabled={running || loadingThread}
+                    title={suggestion.prompt}
+                  >
+                    {suggestion.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
             <form onSubmit={onSubmit} className={styles.composerForm}>
               <Textarea
+                ref={promptRef}
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
                 rows={1}
