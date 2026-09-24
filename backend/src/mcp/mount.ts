@@ -1,5 +1,11 @@
 import { descopeMcpAuthRouter, DescopeMcpProvider } from "@descope/mcp-express";
-import { listUpcomingMeetingsTools } from "./calendar-tools.js";
+import {
+  cancelMeetingTool,
+  checkCalendarBusyTool,
+  createMeetingTool,
+  listUpcomingMeetingsTools,
+  rescheduleMeetingTool,
+} from "./calendar-tools.js";
 import type { Express } from "express";
 
 export function mountMcpServer(app: Express) {
@@ -22,6 +28,10 @@ export function mountMcpServer(app: Express) {
     descopeMcpAuthRouter((server) => {
       // register all out tools
       listUpcomingMeetingsTools(server);
+      checkCalendarBusyTool(server);
+      createMeetingTool(server);
+      rescheduleMeetingTool(server);
+      cancelMeetingTool(server);
     }, provider),
   );
 

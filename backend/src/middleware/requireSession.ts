@@ -15,7 +15,8 @@ export type AuthContext = {
 declare global {
   namespace Express {
     interface Request {
-      auth?: AuthContext;
+      // Not `auth`: the MCP SDK augments that property with its own AuthInfo.
+      appAuth?: AuthContext;
     }
   }
 }
@@ -49,7 +50,7 @@ export async function requireSession(
     const user = await ensureUser({ authUserId, email });
 
     // add auth info in ur req object
-    req.auth = {
+    req.appAuth = {
       authUserId,
       email,
       name: typeof claims.name === "string" ? claims.name : undefined,

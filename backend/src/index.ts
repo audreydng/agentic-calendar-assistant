@@ -9,7 +9,7 @@ import { mountMcpServer } from "./mcp/mount.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
-const appOrigin = process.env.APP_ORIGIN ?? 'http://localhost:3000';
+const appOrigin = process.env.APP_URL ?? 'http://localhost:3000';
 
 app.use(cors({ 
     origin: appOrigin,

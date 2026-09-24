@@ -22,7 +22,7 @@ agentRoutes.use(requireSession);
 
 agentRoutes.get("/threads", async (req, res) => {
   try {
-    const threads = await listUserThreads(req.auth!.authUserId);
+    const threads = await listUserThreads(req.appAuth!.authUserId);
     res.json({ threads });
   } catch (error) {
     const message =
@@ -39,7 +39,7 @@ agentRoutes.get("/threads/:threadId", async (req, res) => {
     return;
   }
   try {
-    const messages = await getThreadMessages(req.auth!.authUserId, parsed.data);
+    const messages = await getThreadMessages(req.appAuth!.authUserId, parsed.data);
     res.json({ threadId: parsed.data, messages });
   } catch (error) {
     const message =
@@ -50,7 +50,7 @@ agentRoutes.get("/threads/:threadId", async (req, res) => {
 
 agentRoutes.delete("/threads", async (req, res) => {
   try {
-    const deleted = await deleteAllUserThreads(req.auth!.authUserId);
+    const deleted = await deleteAllUserThreads(req.appAuth!.authUserId);
     res.json({ deleted });
   } catch (error) {
     const message =
@@ -67,7 +67,7 @@ agentRoutes.delete("/threads/:threadId", async (req, res) => {
     return;
   }
   try {
-    await deleteUserThread(req.auth!.authUserId, parsed.data);
+    await deleteUserThread(req.appAuth!.authUserId, parsed.data);
     res.json({ threadId: parsed.data, deleted: true });
   } catch (error) {
     const message =
@@ -96,8 +96,8 @@ agentRoutes.post("/chat", async (req, res) => {
 
   try {
     await streamAgentReply({
-      userId: req.auth!.userId,
-      authUserId: req.auth!.authUserId,
+      userId: req.appAuth!.userId,
+      authUserId: req.appAuth!.authUserId,
       threadId: parsed.data.threadId,
       message: parsed.data.message,
       onEvent: write,
